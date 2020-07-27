@@ -667,12 +667,12 @@ void GLCanvas3D::WarningTexture::activate(WarningTexture::Warning warning, bool 
 
 		std::string text;
 		switch (warning) {
-			case ObjectOutside: text = L("An object outside the print area was detected"); break;
-			case ToolpathOutside: text = L("A toolpath outside the print area was detected"); break;
-			case SlaSupportsOutside: text = L("SLA supports outside the print area were detected"); break;
-			case SomethingNotShown: text = L("Some objects are not visible"); break;
-			case ObjectClashed: wxGetApp().plater()->get_notification_manager()->push_plater_error_notification(L("An object outside the print area was detected\n"
-																												 "Resolve the current problem to continue slicing"), 
+			case ObjectOutside: text = L("An object outside the print area was detected."); break;
+			case ToolpathOutside: text = L("A toolpath outside the print area was detected."); break;
+			case SlaSupportsOutside: text = L("SLA supports outside the print area were detected."); break;
+			case SomethingNotShown: text = L("Some objects are not visible."); break;
+			case ObjectClashed: wxGetApp().plater()->get_notification_manager()->push_plater_error_notification(L("An object outside the print area was detected.\n"
+																												 "Resolve the current problem to continue slicing."), 
 				                                                                                                *(wxGetApp().plater()->get_current_canvas3D()));
 				break;
 		}
@@ -687,10 +687,10 @@ void GLCanvas3D::WarningTexture::activate(WarningTexture::Warning warning, bool 
 
 		std::string text;
 		switch (warning) {
-		case ObjectOutside: text = L("An object outside the print area was detected"); break;
-		case ToolpathOutside: text = L("A toolpath outside the print area was detected"); break;
-		case SlaSupportsOutside: text = L("SLA supports outside the print area were detected"); break;
-		case SomethingNotShown: text = L("Some objects are not visible"); break;
+		case ObjectOutside: text = L("An object outside the print area was detected."); break;
+		case ToolpathOutside: text = L("A toolpath outside the print area was detected."); break;
+		case SlaSupportsOutside: text = L("SLA supports outside the print area were detected."); break;
+		case SomethingNotShown: text = L("Some objects are not visibl.e"); break;
 		case ObjectClashed: wxGetApp().plater()->get_notification_manager()->clear_plater_error_notification(); break;
 		}
 		if (!text.empty())
