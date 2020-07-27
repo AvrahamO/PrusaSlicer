@@ -386,8 +386,7 @@ void NotificationManager::PopNotification::render_close_button(ImGuiWrapper& img
 	Notifications_Internal::push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_fading_out, m_current_fade_opacity);
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
 
-	ImGui::SetCursorPosX(win_size.x - m_line_height * 2.25f);//50);
-	ImGui::SetCursorPosY(win_size.y / 2 - 15);
+
 	//button - if part if treggered
 	std::string button_text;
 	button_text = ImGui::CloseIconMarker;
@@ -398,7 +397,11 @@ void NotificationManager::PopNotification::render_close_button(ImGuiWrapper& img
 	{
 		button_text = ImGui::CloseIconHoverMarker;
 	}
-	if (imgui.button(button_text.c_str(), 30, 30))
+	ImVec2 button_pic_size = ImGui::CalcTextSize(button_text.c_str());
+	ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+	ImGui::SetCursorPosX(win_size.x - m_line_height * 2.25f);
+	ImGui::SetCursorPosY(win_size.y / 2 - button_size.y/2);
+	if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
 	{
 		m_close_pending = true;
 	}
