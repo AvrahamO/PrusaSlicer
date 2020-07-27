@@ -154,7 +154,7 @@ NotificationManager::PopNotification::RenderResult NotificationManager::PopNotif
 			render_left_sign(imgui);
 			render_text(imgui, win_size.x, win_size.y, win_pos.x, win_pos.y);
 			render_close_button(imgui, win_size.x, win_size.y, win_pos.x, win_pos.y);
-			if (m_multiline)
+			if (m_multiline && m_lines_count > 3)
 				render_minimize_button(imgui, win_pos.x, win_pos.y);
 		} else {
 			// the user clicked on the [X] button ( ImGuiWindowFlags_NoTitleBar means theres no [X] button)
@@ -486,21 +486,22 @@ void NotificationManager::PopNotification::render_minimize_button(ImGuiWrapper& 
 	Notifications_Internal::push_style_color(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f), m_fading_out, m_current_fade_opacity);
 	Notifications_Internal::push_style_color(ImGuiCol_TextSelectedBg, ImVec4(0, .75f, .75f, 1.f), m_fading_out, m_current_fade_opacity);
 
-	ImGui::SetCursorPosX(m_window_width - m_line_height * 2.25f);
-	ImGui::SetCursorPosY(m_window_height - 35);
+	
 	//button - if part if treggered
 	std::string button_text;
 	button_text = ImGui::CloseIconMarker;
-
 	if (ImGui::IsMouseHoveringRect(ImVec2(win_pos_x - m_window_width / 10.f, win_pos_y + m_window_height - 2 * m_line_height + 1),
 		ImVec2(win_pos_x, win_pos_y + m_window_height),
 		true)) 
 	{
 		button_text = ImGui::CloseIconHoverMarker;
 	}
-	
-	if (imgui.button(button_text.c_str(), 30, 30)) {
-		//m_close_pending = true;
+	ImVec2 button_pic_size = ImGui::CalcTextSize(button_text.c_str());
+	ImVec2 button_size(button_pic_size.x * 1.25f, button_pic_size.y * 1.25f);
+	ImGui::SetCursorPosX(m_window_width - m_line_height * 2.25f);
+	ImGui::SetCursorPosY(m_window_height - button_size.y - 5);
+	if (imgui.button(button_text.c_str(), button_size.x, button_size.y))
+	{
 		m_multiline = false;
 	}
 	
