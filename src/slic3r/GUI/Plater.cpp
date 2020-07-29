@@ -4863,10 +4863,7 @@ void Plater::export_gcode(bool prefer_removable)
 {
     if (p->model.objects.empty())
         return;
-	/*
-	if (!p->warnings_dialog())
-		return;
-		*/
+
     // If possible, remove accents from accented latin characters.
     // This function is useful for generating file names to be processed by legacy firmwares.
     fs::path default_output_file;
