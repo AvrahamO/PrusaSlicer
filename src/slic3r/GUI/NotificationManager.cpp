@@ -278,8 +278,11 @@ void NotificationManager::PopNotification::render_text(ImGuiWrapper& imgui, cons
 			// line2
 			std::string line = m_text1.substr(m_endlines[0] + 1, m_endlines[1] - m_endlines[0] - 1);
 			if (ImGui::CalcTextSize(line.c_str()).x > m_window_width - m_window_width_offset - ImGui::CalcTextSize("..More").x)
+			{
 				line = line.substr(0, line.length() - 6);
-			line += "..";
+				line += "..";
+			}else
+				line += "  ";
 			ImGui::SetCursorPosX(x_offset);
 			ImGui::SetCursorPosY(win_size.y / 2 + win_size.y / 6 - m_line_height / 2);
 			imgui.text(line.c_str());
@@ -762,6 +765,23 @@ void NotificationManager::close_notification_of_type(const NotificationType type
 	for (PopNotification* notification : m_pop_notifications) {
 		if (notification->get_type() == type) {
 			notification->close();
+		}
+	}
+}
+void NotificationManager::compare_warning_oids(const std::vector<size_t>& living_oids)
+{
+	for (PopNotification* notification : m_pop_notifications) {
+		if (notification->get_type() == NotificationType::SlicingWarning) {
+			auto w = dynamic_cast<SlicingWarningNotification*>(notification);
+			bool found = false;
+			for (size_t oid : living_oids) {
+				if (w->get_object_id() == oid) {
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+				notification->close();
 		}
 	}
 }

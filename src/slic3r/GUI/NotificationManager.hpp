@@ -226,6 +226,7 @@ public:
 	void set_slicing_warning_gray(const std::string& text, bool g);
 	// imidietly stops showing slicing errors
 	void clear_slicing_errors_and_warnings();
+	void compare_warning_oids(const std::vector<size_t>& living_oids);
 	// finds and closes all notifications of given type
 	void close_notification_of_type(const NotificationType type);
 	void dpi_changed();

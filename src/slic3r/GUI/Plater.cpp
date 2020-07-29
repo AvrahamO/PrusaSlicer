@@ -104,6 +104,7 @@ wxDEFINE_EVENT(EVT_SCHEDULE_BACKGROUND_PROCESS,     SimpleEvent);
 wxDEFINE_EVENT(EVT_SLICING_UPDATE,                  SlicingStatusEvent);
 wxDEFINE_EVENT(EVT_SLICING_COMPLETED,               wxCommandEvent);
 wxDEFINE_EVENT(EVT_PROCESS_COMPLETED,               wxCommandEvent);
+wxDEFINE_EVENT(EVT_EXPORT_BEGAN,                    wxCommandEvent);
 
 // Sidebar widgets
 
@@ -1786,7 +1787,17 @@ struct Plater::priv
     void on_slicing_update(SlicingStatusEvent&);
     void on_slicing_completed(wxCommandEvent&);
     void on_process_completed(wxCommandEvent&);
+	void on_export_began(wxCommandEvent&);
     void on_layer_editing_toggled(bool enable);
+	void on_slicing_began();
+
+	void clear_warnings();
+	void add_warning(const Slic3r::PrintStateBase::Warning &warning, size_t oid);
+	void actualizate_warnings(const Model& model, size_t print_oid);
+	// Displays dialog window with list of warnings. 
+	// Returns true if user agrees to continue.
+	// Returns true if current_warnings vector is empty without showning the dialog
+	bool warnings_dialog();
 
     void on_action_add(SimpleEvent&);
     void on_action_split_objects(SimpleEvent&);
@@ -1865,6 +1876,9 @@ private:
                                                               * */
     std::string 				m_last_fff_printer_profile_name;
     std::string 				m_last_sla_printer_profile_name;
+
+	std::vector<std::pair<Slic3r::PrintStateBase::Warning, size_t>> current_warnings;
+	bool show_warning_dialog { false };
 };
 
 const std::regex Plater::priv::pattern_bundle(".*[.](amf|amf[.]xml|zip[.]amf|3mf|prusa)", std::regex::icase);
@@ -1910,6 +1924,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         });
     background_process.set_slicing_completed_event(EVT_SLICING_COMPLETED);
     background_process.set_finished_event(EVT_PROCESS_COMPLETED);
+	background_process.set_export_began_event(EVT_EXPORT_BEGAN);
     // Default printer technology for default config.
     background_process.select_technology(this->printer_technology);
     // Register progress callback from the Print class to the Plater.
@@ -2021,8 +2036,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_MOVE_DOUBLE_SLIDER, [this](wxKeyEvent& evt) { preview->move_double_slider(evt); });
     preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_EDIT_COLOR_CHANGE, [this](wxKeyEvent& evt) { preview->edit_double_slider(evt); });
 
-    q->Bind(EVT_SLICING_COMPLETED, &priv::on_slicing_completed, this);
+	q->Bind(EVT_SLICING_COMPLETED, &priv::on_slicing_completed, this);
     q->Bind(EVT_PROCESS_COMPLETED, &priv::on_process_completed, this);
+	q->Bind(EVT_EXPORT_BEGAN, &priv::on_export_began, this);
     q->Bind(EVT_GLVIEWTOOLBAR_3D, [q](SimpleEvent&) { q->select_view_3D("3D"); });
     q->Bind(EVT_GLVIEWTOOLBAR_PREVIEW, [q](SimpleEvent&) { q->select_view_3D("Preview"); });
 
@@ -2702,6 +2718,8 @@ void Plater::priv::reset()
 {
     Plater::TakeSnapshot snapshot(q, _L("Reset Project"));
 
+	clear_warnings();
+
     set_project_filename(wxEmptyString);
 
     // Prevent toolpaths preview from rendering while we modify the Print object
@@ -2871,8 +2889,6 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 		// The state of the Print changed, and it is non-zero. Let's validate it and give the user feedback on errors.
         std::string err = this->background_process.validate();
         if (err.empty()) {
-			notification_manager->set_all_slicing_errors_gray(true);
-			notification_manager->set_all_slicing_warnings_gray(true);
             if (invalidated != Print::APPLY_STATUS_UNCHANGED && this->background_processing_enabled())
                 return_state |= UPDATE_BACKGROUND_PROCESS_RESTART;
         } else {
@@ -2894,10 +2910,21 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 			*/
             return_state |= UPDATE_BACKGROUND_PROCESS_INVALID;
         }
+		
+		
     } else if (! this->delayed_error_message.empty()) {
     	// Reusing the old state.
         return_state |= UPDATE_BACKGROUND_PROCESS_INVALID;
     }
+
+	//actualizate warnings
+	if (invalidated != Print::APPLY_STATUS_UNCHANGED) {
+		//HERE this->q->model()
+		actualizate_warnings(this->q->model(), this->background_process.current_print()->id().id);
+		notification_manager->set_all_slicing_errors_gray(true);
+		notification_manager->set_all_slicing_warnings_gray(true);
+		show_warning_dialog = false;
+	}
 
     if (invalidated != Print::APPLY_STATUS_UNCHANGED && was_running && ! this->background_process.running() &&
         (return_state & UPDATE_BACKGROUND_PROCESS_RESTART) == 0) {
@@ -2961,6 +2988,8 @@ bool Plater::priv::restart_background_process(unsigned int state)
                 this->statusbar()->set_status_text(_L("Cancelling"));
                 this->background_process.stop();
             });
+			if (!show_warning_dialog)
+				on_slicing_began();
             return true;
         }
     }
@@ -2987,6 +3016,7 @@ void Plater::priv::export_gcode(fs::path output_path, bool output_path_on_remova
     if ((state & priv::UPDATE_BACKGROUND_PROCESS_INVALID) != 0)
         return;
 
+	show_warning_dialog = true;
     if (! output_path.empty()) {
         background_process.schedule_export(output_path.string(), output_path_on_removable_media);
     } else {
@@ -3466,17 +3496,19 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
         }
         // Now process state.warnings.
 		for (auto const& warning : state.warnings) {
-			notification_manager->push_slicing_warning_notification(warning.message, !warning.current, *q->get_current_canvas3D(), object_id.id, warning_step);
+			if (warning.current) {
+				notification_manager->push_slicing_warning_notification(warning.message, false, *q->get_current_canvas3D(), object_id.id, warning_step);
+				add_warning(warning, object_id.id);
+			}
 		}
     }
-	// only for testing warning purpose
-	//notification_manager->push_slicing_warning_notification(evt.status.text, *q->get_current_canvas3D());
 }
 
 void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
 {
 	//notification_manager->push_notification(NotificationType::SlicingComplete, *q->get_current_canvas3D(), evt.GetInt());
 	notification_manager->push_slicing_complete_notification(*q->get_current_canvas3D(), evt.GetInt(), is_sidebar_collapsed());
+
     switch (this->printer_technology) {
     case ptFFF:
         this->update_fff_scene();
@@ -3490,7 +3522,62 @@ void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
     default: break;
     }
 }
+void Plater::priv::on_export_began(wxCommandEvent& evt)
+{
+	if (show_warning_dialog)
+		warnings_dialog();
+}
+void Plater::priv::on_slicing_began()
+{
+	clear_warnings();
+	notification_manager->close_notification_of_type(NotificationType::SlicingComplete);
+}
+void Plater::priv::add_warning(const Slic3r::PrintStateBase::Warning& warning, size_t oid)
+{
+	for (auto const& it : current_warnings) {
+		if (warning.message_id == it.first.message_id) {
+			if (warning.message_id != 0 || (warning.message_id == 0 && warning.message == it.first.message))
+				return;
+		} 
+	}
+	current_warnings.emplace_back(std::pair<Slic3r::PrintStateBase::Warning, size_t>(warning, oid));
+}
+void Plater::priv::actualizate_warnings(const Model& model, size_t print_oid)
+{
+	std::vector<size_t> living_oids;
+	living_oids.push_back(model.id().id);
+	living_oids.push_back(print_oid);
+	for (auto it = model.objects.begin(); it != model.objects.end(); ++it) {
+		living_oids.push_back((*it)->id().id);
+	}
+	notification_manager->compare_warning_oids(living_oids);
+}
+void Plater::priv::clear_warnings()
+{
+	notification_manager->clear_slicing_errors_and_warnings();
+	this->current_warnings.clear();
+}
+bool Plater::priv::warnings_dialog()
+{
+	if (current_warnings.empty())
+		return true;
+	std::string text = L("There are active warnings concerning sliced models:\n");
+	bool empt = true;
+	for (auto const& it : current_warnings) {
+		int next_n = it.first.message.find_first_of('\n', 0);
+		text += "\n";
+		if (next_n != std::string::npos)
+			text += it.first.message.substr(0, next_n);
+		else
+			text += it.first.message;
+	}
+	//text += "\n\nDo you still wish to export?";
 
+	wxMessageDialog msg_wingow(this->q, text, wxString(SLIC3R_APP_NAME " ") + _L("generated warnings"), wxOK);
+	const auto res = msg_wingow.ShowModal();
+	return res == wxID_OK;
+
+}
 void Plater::priv::on_process_completed(wxCommandEvent &evt)
 {
     // Stop the background task, wait until the thread goes into the "Idle" state.
@@ -4776,7 +4863,10 @@ void Plater::export_gcode(bool prefer_removable)
 {
     if (p->model.objects.empty())
         return;
-
+	/*
+	if (!p->warnings_dialog())
+		return;
+		*/
     // If possible, remove accents from accented latin characters.
     // This function is useful for generating file names to be processed by legacy firmwares.
     fs::path default_output_file;
@@ -5077,8 +5167,7 @@ void Plater::reslice()
     // update type of preview
     p->preview->update_view_type(true);
 
-	p->notification_manager->clear_slicing_errors_and_warnings();
-	p->notification_manager->close_notification_of_type(NotificationType::SlicingComplete);
+	
 }
 
 void Plater::reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages)
