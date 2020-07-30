@@ -141,7 +141,7 @@ NotificationManager::PopNotification::RenderResult NotificationManager::PopNotif
 			
 			
 			//FIXME: dont forget to us this for texts
-			//boost::format(_utf8(L(
+			//GUI::format(_utf8(L()));
 			
 			/*
 			//countdown numbers
@@ -277,7 +277,7 @@ void NotificationManager::PopNotification::render_text(ImGuiWrapper& imgui, cons
 			imgui.text(m_text1.substr(0, m_endlines[0]).c_str());
 			// line2
 			std::string line = m_text1.substr(m_endlines[0] + 1, m_endlines[1] - m_endlines[0] - 1);
-			if (ImGui::CalcTextSize(line.c_str()).x > m_window_width - m_window_width_offset - ImGui::CalcTextSize("..More").x)
+			if (ImGui::CalcTextSize(line.c_str()).x > m_window_width - m_window_width_offset - ImGui::CalcTextSize((".." + _u8L("More")).c_str()).x)
 			{
 				line = line.substr(0, line.length() - 6);
 				line += "..";
@@ -287,7 +287,7 @@ void NotificationManager::PopNotification::render_text(ImGuiWrapper& imgui, cons
 			ImGui::SetCursorPosY(win_size.y / 2 + win_size.y / 6 - m_line_height / 2);
 			imgui.text(line.c_str());
 			// "More" hypertext
-			render_hypertext(imgui, x_offset + ImGui::CalcTextSize(line.c_str()).x, win_size.y / 2 + win_size.y / 6 - m_line_height / 2, "More", true);
+			render_hypertext(imgui, x_offset + ImGui::CalcTextSize(line.c_str()).x, win_size.y / 2 + win_size.y / 6 - m_line_height / 2, _u8L("More"), true);
 		}
 	} else {
 		//text 1
@@ -604,7 +604,7 @@ void NotificationManager::SlicingCompleteLargeNotification::set_large(bool l)
 {
 	m_is_large = l;
 	m_counting_down = !l;
-	m_hypertext = l ? "Export G-Code." : std::string();
+	m_hypertext = l ? _u8L("Export G-Code.") : std::string();
 	m_hidden = !l;
 }
 //------NotificationManager--------
@@ -651,11 +651,11 @@ void NotificationManager::push_notification(const std::string& text, Notificatio
 void NotificationManager::push_slicing_error_notification(const std::string& text, GLCanvas3D& canvas)
 {
 	set_all_slicing_errors_gray(false);
-	push_notification_data({ NotificationType::SlicingError, NotificationLevel::ErrorNotification, 0, "ERROR:\n" + text }, canvas, 0);
+	push_notification_data({ NotificationType::SlicingError, NotificationLevel::ErrorNotification, 0,  _u8L("ERROR:") + "\n" + text }, canvas, 0);
 }
 void NotificationManager::push_slicing_warning_notification(const std::string& text, bool gray, GLCanvas3D& canvas, size_t oid, int warning_step)
 {
-	NotificationData data { NotificationType::SlicingWarning, NotificationLevel::WarningNotification, 0, "WARNING:\n" + text };
+	NotificationData data { NotificationType::SlicingWarning, NotificationLevel::WarningNotification, 0,  _u8L("WARNING:") + "\n" + text };
 
 	NotificationManager::SlicingWarningNotification* notification = new NotificationManager::SlicingWarningNotification(data, m_next_id++, m_evt_handler);
 	notification->set_object_id(oid);
@@ -671,11 +671,11 @@ void NotificationManager::push_slicing_warning_notification(const std::string& t
 }
 void NotificationManager::push_plater_error_notification(const std::string& text, GLCanvas3D& canvas)
 {
-	push_notification_data({ NotificationType::PlaterError, NotificationLevel::ErrorNotification, 0, "ERROR:\n" + text }, canvas, 0);
+	push_notification_data({ NotificationType::PlaterError, NotificationLevel::ErrorNotification, 0,  _u8L("ERROR:") + "\n" + text }, canvas, 0);
 }
 void NotificationManager::push_plater_warning_notification(const std::string& text, GLCanvas3D& canvas)
 {
-	push_notification_data({ NotificationType::PlaterWarning, NotificationLevel::WarningNotification, 0, "WARNING:\n" + text }, canvas, 0);
+	push_notification_data({ NotificationType::PlaterWarning, NotificationLevel::WarningNotification, 0,  _u8L("WARNING:") + "\n" + text }, canvas, 0);
 }
 void NotificationManager::clear_plater_error_notification()
 {
@@ -688,7 +688,7 @@ void NotificationManager::clear_plater_error_notification()
 void NotificationManager::cancel_plater_warning_notification(const std::string& text)
 {
 	for (PopNotification* notification : m_pop_notifications) {
-		if (notification->get_type() == NotificationType::PlaterWarning && notification->compare_text("WARNING:\n" + text)) {
+		if (notification->get_type() == NotificationType::PlaterWarning && notification->compare_text(_u8L("WARNING:") + "\n" + text)) {
 			notification->close();
 		}
 	}
@@ -731,10 +731,10 @@ void NotificationManager::push_slicing_complete_notification(GLCanvas3D& canvas,
 	int         time = 10;
 	if(large)
 	{
-		hypertext = "Export G-Code.";
+		hypertext = _u8L("Export G-Code.");
 		time = 0;
 	}
-	NotificationData data{ NotificationType::SlicingComplete, NotificationLevel::RegularNotification, time, "Slicing finished.", hypertext };
+	NotificationData data{ NotificationType::SlicingComplete, NotificationLevel::RegularNotification, time,  _u8L("Slicing finished."), hypertext };
 
 	NotificationManager::SlicingCompleteLargeNotification* notification = new NotificationManager::SlicingCompleteLargeNotification(data, m_next_id++, m_evt_handler, large);
 	if (push_notification_data(notification, canvas, timestamp)) {

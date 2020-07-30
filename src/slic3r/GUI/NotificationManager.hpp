@@ -2,6 +2,7 @@
 #define slic3r_GUI_NotificationManager_hpp_
 
 #include "Event.hpp"
+#include "I18N.hpp"
 
 #include <string>
 #include <vector>
@@ -250,16 +251,16 @@ private:
 
 	//prepared (basic) notifications
 	const std::vector<NotificationData> basic_notifications = {
-		{NotificationType::SlicingNotPossible, NotificationLevel::RegularNotification, 10, "Slicing is not possible."},
-		{NotificationType::ExportToRemovableFinished, NotificationLevel::ImportantNotification, 0, "Exporting finished.", "Eject drive." },
-		{NotificationType::Mouse3dDisconnected, NotificationLevel::RegularNotification, 10, "3D Mouse disconnected." },
-		{NotificationType::Mouse3dConnected, NotificationLevel::RegularNotification, 5, "3D Mouse connected." },
-		{NotificationType::NewPresetsAviable, NotificationLevel::ImportantNotification, 20, "New Presets are available.", "See here." },
-		{NotificationType::PresetUpdateAviable, NotificationLevel::ImportantNotification, 20, "Configuration update is available.", "See more."},
-		{NotificationType::NewAppAviable, NotificationLevel::ImportantNotification, 20, "New version is available.", "See Releases page."},
-		//{NotificationType::NewAppAviable, NotificationLevel::ImportantNotification, 20, "New vesion of PrusaSlicer is available.", "Download page." },
-		//{NotificationType::LoadingFailed, NotificationLevel::RegularNotification, 20, "Loading of model has Failed" },
-		//{NotificationType::DeviceEjected, NotificationLevel::RegularNotification, 10, "Removable device has been safely ejected"} // if we want changeble text (like here name of device), we need to do it as CustomNotification
+		{NotificationType::SlicingNotPossible, NotificationLevel::RegularNotification, 10,  _u8L("Slicing is not possible.")},
+		{NotificationType::ExportToRemovableFinished, NotificationLevel::ImportantNotification, 0,  _u8L("Exporting finished."),  _u8L("Eject drive.") },
+		{NotificationType::Mouse3dDisconnected, NotificationLevel::RegularNotification, 10,  _u8L("3D Mouse disconnected.") },
+		{NotificationType::Mouse3dConnected, NotificationLevel::RegularNotification, 5,  _u8L("3D Mouse connected.") },
+		{NotificationType::NewPresetsAviable, NotificationLevel::ImportantNotification, 20,  _u8L("New Presets are available."),  _u8L("See here.") },
+		{NotificationType::PresetUpdateAviable, NotificationLevel::ImportantNotification, 20,  _u8L("Configuration update is available."),  _u8L("See more.")},
+		{NotificationType::NewAppAviable, NotificationLevel::ImportantNotification, 20,  _u8L("New version is available."),  _u8L("See Releases page.")},
+		//{NotificationType::NewAppAviable, NotificationLevel::ImportantNotification, 20,  _u8L("New vesion of PrusaSlicer is available.",  _u8L("Download page.") },
+		//{NotificationType::LoadingFailed, NotificationLevel::RegularNotification, 20,  _u8L("Loading of model has Failed") },
+		//{NotificationType::DeviceEjected, NotificationLevel::RegularNotification, 10,  _u8L("Removable device has been safely ejected")} // if we want changeble text (like here name of device), we need to do it as CustomNotification
 	};
 };
 
